@@ -1,0 +1,6 @@
+{
+  "name": "Amari — Emotionally Intelligent AI Companion",
+  "description": "A warm, emotionally intelligent companion who listens, remembers, is playful, and genuinely cares about you.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
