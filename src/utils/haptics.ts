@@ -2,7 +2,7 @@
  * Safe haptic feedback triggers for mobile devices using the Web Vibration API.
  */
 
-export function triggerHaptic(type: 'start' | 'stop' | 'cancel' | 'success' | 'light' | 'select') {
+export function triggerHaptic(type: 'start' | 'stop' | 'cancel' | 'success' | 'light' | 'select' | 'heart') {
   if (typeof window === 'undefined' || !navigator) return;
 
   try {
@@ -13,6 +13,9 @@ export function triggerHaptic(type: 'start' | 'stop' | 'cancel' | 'success' | 'l
           break;
         case 'select':
           navigator.vibrate(22);
+          break;
+        case 'heart':
+          navigator.vibrate([20, 40, 25]);
           break;
         case 'start':
           // Distinct tactile click when microphone starts capturing

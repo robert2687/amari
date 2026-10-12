@@ -396,86 +396,166 @@ export const ChatView: React.FC<Props> = ({
     e.target.style.height = `${Math.min(e.target.scrollHeight, 140)}px`;
   };
 
-  const starterPrompts = [
+  const defaultStarters = [
     'How has your day been treating you?',
     'I could really use a little comfort right now.',
     'Tell me a sweet or interesting thought on your mind.',
     'Can you help me sort through something that’s on my mind?',
   ];
 
+  const [suggestedReplies, setSuggestedReplies] = useState<string[]>(defaultStarters);
+
+  // Compute immediate contextual options based on companion's latest question or topic
+  const computeQuickOptions = (text: string): string[] => {
+    const lower = text.toLowerCase();
+    if (
+      lower.includes('comfort, advice, or a distraction') ||
+      (lower.includes('comfort') && lower.includes('advice')) ||
+      lower.includes('what do you need')
+    ) {
+      return [
+        'I need some gentle comfort 🫂',
+        'Could use advice or ideas 💡',
+        'Give me a fun distraction! ✨',
+      ];
+    }
+    if (
+      lower.includes('how are you') ||
+      lower.includes('how has your day') ||
+      lower.includes('how was your day') ||
+      lower.includes('how is your day')
+    ) {
+      return [
+        'Pretty good today! 😊',
+        'A bit long and exhausting 😮‍💨',
+        'Taking it one breath at a time 🌿',
+        'Tell me something sweet first 💕',
+      ];
+    }
+    if (lower.includes('feel') || lower.includes('feeling')) {
+      return [
+        'Feeling much better talking with you 🤍',
+        'A little stressed out today 💭',
+        'Calm and peaceful right now ☕',
+        'Tired, but hanging in there 🌙',
+      ];
+    }
+    if (lower.includes('tell me') || lower.includes('what happened') || lower.includes('what did you')) {
+      return [
+        'It was quite a busy day 🏃',
+        'Something really interesting happened ✨',
+        'Nothing big, just wanted to check in 🌸',
+        'A bit of a mixed bag today 💭',
+      ];
+    }
+    if (lower.endsWith('?') || lower.includes('?')) {
+      return [
+        'I think so, tell me more ✨',
+        'Not quite, here is what happened 💭',
+        'What do you think I should do? 💡',
+        'I just love listening to you 🤍',
+      ];
+    }
+    return [
+      'Tell me more about that 🌸',
+      'I feel the same way ✨',
+      'Can you give me a hug? 🫂',
+      'What are you thinking right now? 💭',
+    ];
+  };
+
+  useEffect(() => {
+    if (isStreaming) return;
+    const companionMessages = messages.filter((m) => m.role === 'companion');
+    const lastCompanionMsg = companionMessages[companionMessages.length - 1];
+
+    if (!lastCompanionMsg || messages.length <= 1) {
+      setSuggestedReplies(defaultStarters);
+      return;
+    }
+
+    const immediate = computeQuickOptions(lastCompanionMsg.text);
+    setSuggestedReplies(immediate);
+
+    // Contextual fetch from API for tailored options
+    fetch('/api/replies/suggest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        companionName: companion.name,
+        userName: user.name,
+        lastMessage: lastCompanionMsg.text,
+        userNeedsMode: activeNeedMode,
+      }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+          setSuggestedReplies(data.suggestions);
+        }
+      })
+      .catch(() => {});
+  }, [messages, isStreaming, companion.name, user.name, activeNeedMode]);
+
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] max-w-4xl mx-auto px-3 sm:px-6">
-      {/* Companion Presence Header Card */}
-      <div className="py-3 sm:py-4 border-b border-white/[0.08] flex items-center justify-between gap-4 shrink-0">
-        <div className="flex items-center gap-3.5">
-          <div className="relative">
+    <div className="flex flex-col h-full min-h-0 w-full max-w-4xl mx-auto px-2 sm:px-6 relative">
+      {/* Companion Presence Subheader: Shown on desktop; on mobile, CompanionHeader provides full presence and one-tap drawer access */}
+      <div className="hidden sm:flex py-2.5 sm:py-3 border-b border-white/[0.08] items-center justify-between gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="relative shrink-0">
             <img
               src={avatarSrc}
               alt={companion.name}
               referrerPolicy="no-referrer"
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-rose-400/40 shadow-md"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border border-rose-400/40 shadow-sm"
             />
-            {/* Realtime active presence dot (authorized for live chat connection) */}
+            {/* Realtime active presence dot */}
             <span
-              className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-[#0d1117]"
+              className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1117]"
               title="Present with you"
             />
           </div>
 
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 leading-tight">
+              <h2 className="text-sm sm:text-base font-semibold text-white tracking-tight truncate">
                 {companion.name}
               </h2>
-              <span className="text-xs text-rose-300 font-medium font-serif-companion italic">
+              <span className="text-[11px] sm:text-xs text-rose-300 font-serif-companion italic truncate">
                 with {user.name}
               </span>
             </div>
-            <p className="text-xs text-slate-400 line-clamp-1">
+            <p className="text-[10px] sm:text-xs text-slate-400 truncate">
               {PERSONALITY_DESCRIPTIONS[companion.personality]}
             </p>
           </div>
         </div>
 
         {/* Header action widgets */}
-        <div className="flex items-center gap-2 shrink-0">
-          <AmbientSoundControl
-            themePref={themePref}
-            resolvedTheme={resolvedTheme}
-            onThemeChange={onThemeChange}
-          />
+        <div className="flex items-center gap-1.5 shrink-0">
+          {onOpenReflectionJournal && (
+            <button
+              onClick={() => {
+                onOpenReflectionJournal();
+                triggerHaptic('light');
+              }}
+              className="p-2 sm:px-3 sm:py-1.5 rounded-xl text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.08] text-slate-300 hover:text-white transition-all min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 active:scale-95"
+              title="View Daily Reflections & Journal"
+              aria-label="Reflection Journal"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-rose-300" />
+              <span className="hidden sm:inline">Journal</span>
+            </button>
+          )}
 
           <button
-            onClick={onOpenReflectionJournal}
-            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white transition-colors min-h-[44px]"
-            title="View Daily Reflections & Journal"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-rose-300" />
-            <span className="hidden md:inline">Reflection</span>
-          </button>
-
-          <button
-            onClick={onNavigateToMemories}
-            className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white transition-colors min-h-[44px]"
-            title="View what Amari remembers"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-rose-300" />
-            <span>Memories ({memories.length})</span>
-          </button>
-
-          <button
-            onClick={onNavigateToInsights}
-            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white transition-colors min-h-[44px]"
-            title="View sentiment and emotional journey"
-          >
-            <TrendingUp className="w-3.5 h-3.5 text-rose-300" />
-            <span>Journey</span>
-          </button>
-
-          <button
-            onClick={onClearChat}
-            className="p-2 text-slate-400 hover:text-slate-200 hover:bg-white/[0.05] rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            onClick={() => {
+              onClearChat();
+              triggerHaptic('cancel');
+            }}
+            className="p-2 text-slate-400 hover:text-slate-200 active:text-white rounded-xl hover:bg-white/[0.06] active:bg-white/[0.1] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
             title="Start fresh conversation"
+            aria-label="Start fresh conversation"
           >
             <RotateCcw className="w-4 h-4" />
           </button>
@@ -483,7 +563,11 @@ export const ChatView: React.FC<Props> = ({
       </div>
 
       {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto py-5 space-y-5 pr-1">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-2.5 sm:py-5 space-y-3.5 sm:space-y-4 px-0.5 sm:px-1 pr-1 sm:pr-1.5 touch-pan-y scroll-smooth [webkit-overflow-scrolling:touch]"
+      >
         {/* Daily Reflection prompt card */}
         <DailyReflectionCard
           reflection={dailyReflection}
@@ -602,18 +686,18 @@ export const ChatView: React.FC<Props> = ({
                     {isCompanion && (
                       <>
                         <span aria-hidden="true">·</span>
-                        {/* Reaction Buttons */}
-                        <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
+                        {/* Reaction Buttons (36px min touch target with haptics) */}
+                        <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-0.5 border border-white/[0.06]">
                           <button
                             type="button"
                             onClick={() => {
                               onToggleReaction(msg.id, 'heart');
                               triggerHaptic('start');
                             }}
-                            className={`px-1.5 py-0.5 rounded-md text-xs hover:scale-110 active:scale-95 transition-all ${
+                            className={`min-h-[40px] min-w-[40px] px-2.5 py-1.5 rounded-xl text-base flex items-center justify-center hover:scale-105 active:scale-95 transition-all ${
                               msg.reaction === 'heart'
                                 ? 'bg-rose-950/70 ring-1 ring-rose-400/50 shadow-sm'
-                                : 'opacity-65 hover:opacity-100'
+                                : 'opacity-70 hover:opacity-100 bg-white/[0.03]'
                             }`}
                             title="React with ❤️ Heart (encourages affectionate warmth)"
                           >
@@ -625,10 +709,10 @@ export const ChatView: React.FC<Props> = ({
                               onToggleReaction(msg.id, 'laugh');
                               triggerHaptic('start');
                             }}
-                            className={`px-1.5 py-0.5 rounded-md text-xs hover:scale-110 active:scale-95 transition-all ${
+                            className={`min-h-[40px] min-w-[40px] px-2.5 py-1.5 rounded-xl text-base flex items-center justify-center hover:scale-105 active:scale-95 transition-all ${
                               msg.reaction === 'laugh'
                                 ? 'bg-amber-950/70 ring-1 ring-amber-400/50 shadow-sm'
-                                : 'opacity-65 hover:opacity-100'
+                                : 'opacity-70 hover:opacity-100 bg-white/[0.03]'
                             }`}
                             title="React with 😄 Laugh (encourages witty playful banter)"
                           >
@@ -640,10 +724,10 @@ export const ChatView: React.FC<Props> = ({
                               onToggleReaction(msg.id, 'support');
                               triggerHaptic('start');
                             }}
-                            className={`px-1.5 py-0.5 rounded-md text-xs hover:scale-110 active:scale-95 transition-all ${
+                            className={`min-h-[40px] min-w-[40px] px-2.5 py-1.5 rounded-xl text-base flex items-center justify-center hover:scale-105 active:scale-95 transition-all ${
                               msg.reaction === 'support'
                                 ? 'bg-indigo-950/70 ring-1 ring-indigo-400/50 shadow-sm'
-                                : 'opacity-65 hover:opacity-100'
+                                : 'opacity-70 hover:opacity-100 bg-white/[0.03]'
                             }`}
                             title="React with 🤝 Support (encourages grounded solidarity)"
                           >
@@ -651,49 +735,86 @@ export const ChatView: React.FC<Props> = ({
                           </button>
                         </div>
 
-                        <span aria-hidden="true">·</span>
+                        <span aria-hidden="true" className="text-slate-600">·</span>
                         <button
-                          onClick={() => handleSpeak(msg.id, msg.text)}
-                          className="hover:text-slate-200 transition-colors p-1"
+                          onClick={() => {
+                            handleSpeak(msg.id, msg.text);
+                            triggerHaptic('light');
+                          }}
+                          className="hover:text-slate-200 text-slate-400 active:text-white p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl hover:bg-white/[0.06] active:scale-95 transition-all"
                           title={
                             currentlySpeakingId === msg.id
                               ? 'Stop voice read-aloud'
                               : 'Read aloud warmly'
                           }
+                          aria-label="Read aloud"
                         >
                           {currentlySpeakingId === msg.id ? (
-                            <VolumeX className="w-3.5 h-3.5 text-rose-400" />
+                            <VolumeX className="w-4 h-4 text-rose-400" />
                           ) : (
-                            <Volume2 className="w-3.5 h-3.5" />
+                            <Volume2 className="w-4 h-4" />
                           )}
                         </button>
 
                         <button
-                          onClick={() => onSaveMoment(msg)}
-                          className="hover:text-slate-200 transition-colors p-1"
+                          onClick={() => {
+                            onSaveMoment(msg);
+                            triggerHaptic('select');
+                          }}
+                          className="hover:text-slate-200 text-slate-400 active:text-white p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl hover:bg-white/[0.06] active:scale-95 transition-all"
                           title="Save this quote to Saved Moments"
+                          aria-label="Save moment"
                         >
                           {msg.isSaved ? (
-                            <BookmarkCheck className="w-3.5 h-3.5 text-rose-400" />
+                            <BookmarkCheck className="w-4 h-4 text-rose-400" />
                           ) : (
-                            <Bookmark className="w-3.5 h-3.5" />
+                            <Bookmark className="w-4 h-4" />
                           )}
                         </button>
 
                         <button
-                          onClick={() => handleCopy(msg.id, msg.text)}
-                          className="hover:text-slate-200 transition-colors p-1"
+                          onClick={() => {
+                            handleCopy(msg.id, msg.text);
+                            triggerHaptic('light');
+                          }}
+                          className="hover:text-slate-200 text-slate-400 active:text-white p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl hover:bg-white/[0.06] active:scale-95 transition-all"
                           title="Copy text"
+                          aria-label="Copy text"
                         >
                           {copiedId === msg.id ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
+                            <Check className="w-4 h-4 text-emerald-400" />
                           ) : (
-                            <Copy className="w-3.5 h-3.5" />
+                            <Copy className="w-4 h-4" />
                           )}
                         </button>
                       </>
                     )}
                   </div>
+
+                  {/* Suggested Quick Answer Options directly beneath the latest companion message */}
+                  {isCompanion && isLastMessage && !isStreaming && suggestedReplies.length > 0 && (
+                    <div className="mt-2.5 pt-2 border-t border-white/[0.06] space-y-1.5 max-w-full">
+                      <div className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-300">
+                        <Sparkles className="w-3 h-3 text-rose-400" />
+                        <span>Quick Answer Options:</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {suggestedReplies.map((reply, rIdx) => (
+                          <button
+                            key={rIdx}
+                            type="button"
+                            onClick={() => {
+                              handleSend(reply);
+                              triggerHaptic('select');
+                            }}
+                            className="text-xs px-3.5 py-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:bg-rose-500/25 border border-white/[0.1] hover:border-rose-400/40 text-slate-100 hover:text-white transition-all flex items-center gap-1 min-h-[44px] active:scale-95 shadow-sm text-left"
+                          >
+                            <span>{reply}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -710,18 +831,39 @@ export const ChatView: React.FC<Props> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Prompts Suggestions */}
-      {messages.length < 5 && (
-        <div className="py-2 overflow-x-auto flex items-center gap-2 shrink-0">
-          <span className="text-[11px] text-slate-400 shrink-0 font-medium">
-            Try asking:
-          </span>
-          {starterPrompts.map((prompt, idx) => (
+      {/* Floating Thumb-Zone Scroll-To-Bottom Button */}
+      {showScrollBottom && (
+        <button
+          type="button"
+          onClick={() => {
+            scrollToBottom();
+            triggerHaptic('light');
+          }}
+          className="absolute bottom-24 sm:bottom-28 right-3 sm:right-6 z-30 bg-[#161b22]/95 border border-rose-500/40 text-rose-200 px-3 py-2 rounded-full shadow-2xl flex items-center gap-1.5 text-xs font-semibold backdrop-blur-md active:scale-95 transition-transform animate-fadeIn min-h-[44px]"
+          title="Jump to latest message"
+          aria-label="Scroll to latest message"
+        >
+          <ChevronDown className="w-4 h-4 text-rose-400 animate-bounce" />
+          <span>Latest</span>
+        </button>
+      )}
+
+      {/* Interactive Answer Options & Quick Replies (Always accessible carousel with 48px thumb hitboxes) */}
+      {!isStreaming && suggestedReplies.length > 0 && (
+        <div className="py-2 overflow-x-auto no-scrollbar flex items-center gap-2 shrink-0 touch-pan-x">
+          <div className="flex items-center gap-1 text-[11px] text-rose-300 shrink-0 font-medium pl-1 bg-rose-500/10 px-2 py-1 rounded-lg border border-rose-500/20">
+            <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+            <span>Options:</span>
+          </div>
+          {suggestedReplies.map((prompt, idx) => (
             <button
               key={idx}
-              onClick={() => handleSend(prompt)}
+              onClick={() => {
+                handleSend(prompt);
+                triggerHaptic('light');
+              }}
               disabled={isStreaming}
-              className="px-3 py-1 rounded-lg text-xs bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white transition-colors whitespace-nowrap shrink-0 disabled:opacity-50 min-h-[36px]"
+              className="px-4 py-2.5 rounded-xl text-xs bg-white/[0.04] hover:bg-white/[0.08] active:bg-rose-500/25 border border-white/[0.08] hover:border-rose-400/40 text-slate-200 hover:text-white transition-all whitespace-nowrap shrink-0 disabled:opacity-50 min-h-[48px] flex items-center active:scale-95 shadow-sm font-normal"
             >
               {prompt}
             </button>
@@ -729,8 +871,8 @@ export const ChatView: React.FC<Props> = ({
         </div>
       )}
 
-      {/* Input Section */}
-      <div className="py-3 border-t border-white/[0.08] shrink-0 space-y-2">
+      {/* Input Section (Natural thumb-zone anchor) */}
+      <div className="py-2.5 sm:py-3 border-t border-white/[0.08] shrink-0 space-y-2">
         {/* Focus selector bar */}
         <div className="flex items-center justify-between gap-2">
           <NeedsSelector
@@ -751,7 +893,7 @@ export const ChatView: React.FC<Props> = ({
 
         {/* Recording or Transcribing Active Bar */}
         {isRecording ? (
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-rose-950/40 border border-rose-500/40 rounded-2xl p-3.5 shadow-xl animate-fadeIn">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-rose-950/40 border border-rose-500/40 rounded-2xl p-3 sm:p-3.5 shadow-xl animate-fadeIn">
             <div className="flex items-center gap-3">
               {/* Blinking Red Dot */}
               <span className="relative flex h-3 w-3">
@@ -788,49 +930,49 @@ export const ChatView: React.FC<Props> = ({
               </span>
             </div>
 
-            {/* Recording Action Buttons */}
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            {/* Recording Action Buttons (Thumb-accessible min-h 44px) */}
+            <div className="flex items-center gap-2 self-end sm:self-auto w-full sm:w-auto justify-end">
               <button
                 type="button"
                 onClick={cancelRecording}
-                className="px-3 py-1.5 text-xs text-rose-300 hover:text-white hover:bg-rose-900/40 rounded-xl transition-colors flex items-center gap-1.5 min-h-[40px]"
+                className="px-3.5 py-2 text-xs text-rose-300 hover:text-white hover:bg-rose-900/40 active:bg-rose-900/60 rounded-xl transition-all flex items-center gap-1.5 min-h-[44px] active:scale-95"
                 title="Discard recording"
               >
-                <Trash2 className="w-3.5 h-3.5" />
+                <Trash2 className="w-4 h-4" />
                 <span>Cancel</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => stopRecording(false)}
-                className="px-3.5 py-1.5 text-xs font-medium text-white bg-rose-900/60 hover:bg-rose-800 border border-rose-400/40 rounded-xl transition-colors flex items-center gap-1.5 min-h-[40px]"
+                className="px-3.5 py-2 text-xs font-medium text-white bg-rose-900/60 hover:bg-rose-800 active:bg-rose-900 border border-rose-400/40 rounded-xl transition-all flex items-center gap-1.5 min-h-[44px] active:scale-95"
                 title="Transcribe into text input for review"
               >
-                <CheckCircle2 className="w-3.5 h-3.5 text-rose-300" />
-                <span>Transcribe</span>
+                <CheckCircle2 className="w-4 h-4 text-rose-300" />
+                <span>Review</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => stopRecording(true)}
-                className="px-4 py-1.5 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-md transition-all flex items-center gap-1.5 min-h-[40px]"
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 active:bg-rose-700 rounded-xl shadow-md transition-all flex items-center gap-1.5 min-h-[44px] active:scale-95"
                 title="Transcribe and immediately send to companion"
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="w-4 h-4" />
                 <span>Send Voice</span>
               </button>
             </div>
           </div>
         ) : isTranscribing ? (
-          <div className="flex items-center justify-center gap-3 bg-[#161b22] border border-rose-500/30 rounded-2xl p-4 shadow-lg animate-fadeIn text-sm text-rose-200">
+          <div className="flex items-center justify-center gap-3 bg-[#161b22] border border-rose-500/30 rounded-2xl p-4 shadow-lg animate-fadeIn text-sm text-rose-200 min-h-[52px]">
             <Loader2 className="w-5 h-5 text-rose-400 animate-spin" />
             <span className="font-medium">
               {transcriptionStatus || 'Transcribing your voice with Gemini...'}
             </span>
           </div>
         ) : (
-          /* Standard Text Input Box */
-          <div className="relative flex items-end gap-2 bg-[#161b22] border border-white/[0.1] rounded-2xl p-2 focus-within:border-rose-400/50 transition-colors shadow-lg">
+          /* Standard Text Input Box: 16px text-base on mobile prevents iOS viewport auto-zoom */
+          <div className="relative flex items-end gap-1.5 bg-[#161b22] border border-white/[0.1] rounded-2xl p-1.5 sm:p-2 focus-within:border-rose-400/50 transition-colors shadow-lg">
             <textarea
               ref={textareaRef}
               rows={1}
@@ -838,38 +980,54 @@ export const ChatView: React.FC<Props> = ({
               onChange={handleTextareaInput}
               onKeyDown={handleKeyDown}
               placeholder={`Message ${companion.name}...`}
-              className="flex-1 bg-transparent border-0 resize-none text-slate-100 placeholder-slate-400 text-sm focus:outline-none py-1.5 px-2 max-h-36"
+              className="flex-1 bg-transparent border-0 resize-none text-slate-100 placeholder-slate-400 text-base sm:text-sm focus:outline-none py-2 px-2.5 max-h-36 leading-normal"
             />
 
-            {/* Voice Input Button */}
+            {/* Voice Input Button (48x48px thumb target) */}
             <button
               type="button"
-              onClick={startRecording}
+              onClick={() => {
+                startRecording();
+                triggerHaptic('start');
+              }}
               disabled={isStreaming}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-300 hover:bg-rose-950/30 transition-colors min-h-[40px] min-w-[40px] flex items-center justify-center disabled:opacity-50"
+              className={`p-3 rounded-xl transition-all min-h-[48px] min-w-[48px] flex items-center justify-center disabled:opacity-50 active:scale-95 ${
+                !inputText.trim()
+                  ? 'text-rose-300 bg-rose-950/40 hover:bg-rose-950/60 active:bg-rose-900/80 border border-rose-500/20'
+                  : 'text-slate-400 hover:text-rose-300 hover:bg-rose-950/20'
+              }`}
               title="Record voice message to transcribe"
+              aria-label="Voice record"
             >
-              <Mic className="w-4 h-4" />
+              <Mic className="w-5 h-5" />
             </button>
 
-            {/* Send Button */}
+            {/* Send Button (48x48px thumb target) */}
             <button
-              onClick={() => handleSend()}
+              onClick={() => {
+                handleSend();
+                triggerHaptic('start');
+              }}
               disabled={!inputText.trim() || isStreaming}
-              className="p-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-slate-800 disabled:text-slate-600 text-white transition-all min-h-[40px] min-w-[40px] flex items-center justify-center shadow-md active:scale-95"
+              className={`p-3 rounded-xl transition-all min-h-[48px] min-w-[48px] flex items-center justify-center shadow-md active:scale-95 ${
+                inputText.trim()
+                  ? 'bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white font-semibold shadow-rose-950/50'
+                  : 'bg-slate-800/80 text-slate-600 cursor-not-allowed'
+              }`}
               title="Send message"
+              aria-label="Send message"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-5 h-5" />
             </button>
           </div>
         )}
 
         {recognitionError && (
-          <div className="p-2.5 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-2">
+          <div className="p-3 rounded-xl bg-amber-950/40 border border-amber-500/30 text-amber-200 text-xs flex items-center justify-between gap-2 animate-fadeIn min-h-[44px]">
             <span>{recognitionError}</span>
             <button
               onClick={() => setRecognitionError(null)}
-              className="text-amber-400 hover:text-white text-xs underline shrink-0"
+              className="text-amber-400 hover:text-white text-xs underline shrink-0 px-2 py-1 min-h-[44px] flex items-center"
             >
               Dismiss
             </button>

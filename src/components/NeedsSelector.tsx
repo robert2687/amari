@@ -41,7 +41,7 @@ export const NeedsSelector: React.FC<Props> = ({ currentMode, onSelectMode }) =>
   ];
 
   return (
-    <div className="w-full overflow-x-auto no-scrollbar py-0.5">
+    <div className="w-full overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
       <div className="inline-flex items-center gap-1.5 p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl shrink-0">
         <span className="text-[10px] font-semibold tracking-wider uppercase text-slate-400 pl-2 pr-1 hidden sm:inline select-none">
           Focus:
@@ -57,7 +57,7 @@ export const NeedsSelector: React.FC<Props> = ({ currentMode, onSelectMode }) =>
                 onSelectMode(item.mode);
                 triggerHaptic('select');
               }}
-              className={`px-3 py-1.5 text-xs rounded-lg transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[38px] active:scale-95 ${
+              className={`px-4 py-2.5 text-xs rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-2 min-h-[48px] active:scale-95 ${
                 isActive
                   ? item.activeClass
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
@@ -65,7 +65,7 @@ export const NeedsSelector: React.FC<Props> = ({ currentMode, onSelectMode }) =>
               title={item.desc}
             >
               {item.icon}
-              <span>{item.label}</span>
+              <span className="font-medium text-xs">{item.label}</span>
             </button>
           );
         })}

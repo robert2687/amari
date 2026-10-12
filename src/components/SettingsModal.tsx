@@ -76,28 +76,32 @@ export const SettingsModal: React.FC<Props> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-[#161b22] border border-white/[0.1] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-[#161b22] border-t sm:border border-white/[0.1] rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92dvh] sm:max-h-[90vh] flex flex-col">
+        {/* Mobile Drag Handle */}
+        <div className="sm:hidden w-12 h-1.5 bg-white/20 rounded-full mx-auto my-2.5 shrink-0" />
+
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.08] shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-white/[0.08] shrink-0">
           <div>
-            <h3 className="text-lg font-semibold text-white">
+            <h3 className="text-base sm:text-lg font-semibold text-white">
               Companion & Relationship Settings
             </h3>
-            <p className="text-xs text-slate-400">
+            <p className="text-[11px] sm:text-xs text-slate-400">
               Personalize names, personality vibe, portrait, and voice warmth.
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 text-slate-400 hover:text-white rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
+            aria-label="Close settings"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs text-slate-200">
+        <div className="flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-6 text-xs text-slate-200">
           {/* Section: Names */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -108,7 +112,7 @@ export const SettingsModal: React.FC<Props> = ({
                 type="text"
                 value={companionName}
                 onChange={(e) => setCompanionName(e.target.value)}
-                className="w-full bg-[#0d1117] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-rose-400"
+                className="w-full bg-[#0d1117] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-slate-100 text-base sm:text-sm focus:outline-none focus:border-rose-400"
                 placeholder="Amari"
               />
             </div>
@@ -121,7 +125,7 @@ export const SettingsModal: React.FC<Props> = ({
                 type="text"
                 value={userName}
                 onChange={(e) => setUserName(e.target.value)}
-                className="w-full bg-[#0d1117] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-slate-100 text-sm focus:outline-none focus:border-rose-400"
+                className="w-full bg-[#0d1117] border border-white/[0.1] rounded-xl px-3.5 py-2.5 text-slate-100 text-base sm:text-sm focus:outline-none focus:border-rose-400"
                 placeholder="Robert"
               />
             </div>
@@ -144,9 +148,9 @@ export const SettingsModal: React.FC<Props> = ({
                       setPersonality(key as PersonalityArchetype);
                     }
                   }}
-                  className={`p-2 rounded-xl border text-left flex flex-col items-center gap-2 transition-all min-h-[44px] ${
+                  className={`p-2.5 rounded-2xl border text-left flex flex-col items-center gap-2 transition-all min-h-[48px] active:scale-95 ${
                     avatar === key
-                      ? 'border-rose-400 bg-rose-950/20 shadow-md ring-1 ring-rose-400/50'
+                      ? 'border-rose-400 bg-rose-950/30 shadow-md ring-2 ring-rose-400/50'
                       : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.05]'
                   }`}
                 >
@@ -322,17 +326,17 @@ export const SettingsModal: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t border-white/[0.08] bg-[#0d1117]/50 shrink-0">
+        {/* Modal Footer (Pinned within easy thumb reach) */}
+        <div className="flex items-center justify-end gap-3 px-4 sm:px-6 py-3 border-t border-white/[0.08] bg-[#0d1117] shrink-0 pb-safe">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-xs text-slate-400 hover:text-white transition-colors min-h-[44px]"
+            className="px-4 py-3 text-xs text-slate-400 hover:text-white active:bg-white/[0.06] rounded-xl transition-all min-h-[48px] active:scale-95"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
-            className="px-5 py-2 text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-xl transition-all min-h-[44px] shadow-md shadow-rose-950/50"
+            className="px-5 py-3 text-xs font-semibold bg-rose-600 hover:bg-rose-500 active:bg-rose-700 text-white rounded-xl transition-all min-h-[48px] shadow-md shadow-rose-950/50 active:scale-95 flex items-center justify-center"
           >
             Save Preferences
           </button>

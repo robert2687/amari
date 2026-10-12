@@ -149,15 +149,15 @@ export const MemoryVault: React.FC<Props> = ({
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        {/* Category Tabs (Interactive Filter Controls - Buttons Allowed) */}
-        <div className="flex items-center gap-1 overflow-x-auto p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+        {/* Category Tabs (Interactive Filter Controls - 48px touch targets) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar p-1.5 bg-white/[0.04] border border-white/[0.08] rounded-xl touch-pan-x shrink-0">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap min-h-[36px] ${
+              className={`px-4 py-2.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap min-h-[48px] flex items-center active:scale-95 ${
                 activeCategory === cat
-                  ? 'bg-white/10 text-white shadow-sm'
+                  ? 'bg-white/15 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -174,7 +174,7 @@ export const MemoryVault: React.FC<Props> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search memories..."
-            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-rose-400 min-h-[40px]"
+            className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-9 pr-3 py-2 text-base sm:text-xs text-slate-200 placeholder-slate-400 focus:outline-none focus:border-rose-400 min-h-[44px]"
           />
         </div>
       </div>
@@ -216,28 +216,30 @@ export const MemoryVault: React.FC<Props> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => onTogglePin(mem.id)}
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`p-2.5 rounded-xl transition-all min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95 ${
                         mem.isPinned
-                          ? 'text-rose-400 hover:text-rose-300'
+                          ? 'text-rose-400 hover:text-rose-300 bg-rose-950/30'
                           : 'text-slate-400 hover:text-slate-200'
                       }`}
                       title={mem.isPinned ? 'Unpin memory' : 'Pin to top'}
+                      aria-label="Toggle pin"
                     >
                       {mem.isPinned ? (
-                        <Pin className="w-3.5 h-3.5 fill-rose-400/40" />
+                        <Pin className="w-4 h-4 fill-rose-400/40" />
                       ) : (
-                        <PinOff className="w-3.5 h-3.5" />
+                        <PinOff className="w-4 h-4" />
                       )}
                     </button>
                     <button
                       onClick={() => onDeleteMemory(mem.id)}
-                      className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg transition-colors"
+                      className="p-2.5 text-slate-400 hover:text-rose-400 active:text-rose-300 rounded-xl transition-all min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
                       title="Forget this memory"
+                      aria-label="Delete memory"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </div>

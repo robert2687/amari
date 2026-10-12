@@ -1,14 +1,20 @@
 import React from 'react';
-import { Settings, HeartHandshake, Sparkles } from 'lucide-react';
+import { Settings, HeartHandshake } from 'lucide-react';
 import { CompanionProfile } from '../types/companion';
 import { AVATAR_MAP } from '../utils/storage';
 import { triggerHaptic } from '../utils/haptics';
+import { AmbientSoundControl } from './AmbientSoundControl';
+import { TimeOfDayTheme, ResolvedTheme } from '../utils/theme';
 
 interface Props {
   profile: CompanionProfile;
   activeTab: 'chat' | 'memories' | 'insights' | 'saved' | 'care';
   setActiveTab: (tab: 'chat' | 'memories' | 'insights' | 'saved' | 'care') => void;
   onOpenSettings: () => void;
+  onOpenProfileDrawer?: () => void;
+  themePref: TimeOfDayTheme;
+  resolvedTheme: ResolvedTheme;
+  onThemeChange: (theme: TimeOfDayTheme) => void;
 }
 
 export const CompanionHeader: React.FC<Props> = ({
@@ -16,6 +22,10 @@ export const CompanionHeader: React.FC<Props> = ({
   activeTab,
   setActiveTab,
   onOpenSettings,
+  onOpenProfileDrawer,
+  themePref,
+  resolvedTheme,
+  onThemeChange,
 }) => {
   const avatarSrc = AVATAR_MAP[profile.avatar] || AVATAR_MAP.gentle;
 
@@ -25,10 +35,14 @@ export const CompanionHeader: React.FC<Props> = ({
         {/* Brand & Companion Identity */}
         <button
           onClick={() => {
-            setActiveTab('chat');
             triggerHaptic('light');
+            if (activeTab === 'chat' && onOpenProfileDrawer) {
+              onOpenProfileDrawer();
+            } else {
+              setActiveTab('chat');
+            }
           }}
-          className="text-left flex items-center gap-2.5 hover:opacity-90 transition-opacity min-h-[44px]"
+          className="text-left flex items-center gap-2.5 hover:opacity-90 active:scale-98 transition-all min-h-[44px]"
         >
           <div className="relative shrink-0">
             <img
@@ -128,14 +142,20 @@ export const CompanionHeader: React.FC<Props> = ({
           </button>
         </nav>
 
-        {/* Right Action: Settings Trigger (Thumb-friendly touch target) */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Right Actions: Atmosphere / Ambient Sound & Settings (Thumb-friendly 44px+ hit targets) */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <AmbientSoundControl
+            themePref={themePref}
+            resolvedTheme={resolvedTheme}
+            onThemeChange={onThemeChange}
+          />
+
           <button
             onClick={() => {
               onOpenSettings();
               triggerHaptic('light');
             }}
-            className="p-2 sm:px-3 sm:py-1.5 text-xs font-medium text-slate-200 bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.08] rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-200 bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.08] rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center active:scale-95"
             title="Companion and relationship settings"
             aria-label="Settings"
           >

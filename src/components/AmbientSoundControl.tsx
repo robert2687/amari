@@ -108,8 +108,8 @@ export const AmbientSoundControl: React.FC<Props> = ({
 
       {isOpen && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-2 sm:bottom-auto sm:top-full sm:mt-2 w-72 rounded-2xl bg-[#161b22] border border-white/[0.1] shadow-2xl p-4 z-50 animate-fadeIn text-xs space-y-4">
+          <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-xs sm:bg-transparent" onClick={() => setIsOpen(false)} />
+          <div className="absolute right-0 top-full mt-2 w-72 sm:w-80 rounded-2xl bg-[#161b22] border border-white/[0.12] shadow-2xl p-4 z-50 animate-fadeIn text-xs space-y-4 max-w-[calc(100vw-1.5rem)]">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/[0.08] pb-2">
               <span className="font-semibold text-slate-200">

@@ -241,13 +241,13 @@ export const SentimentInsights: React.FC<Props> = ({
             </p>
           </div>
 
-          {/* Interactive Chart Mode Switch (Buttons as per section 1.A) */}
-          <div className="flex items-center gap-1 p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl self-start sm:self-auto">
+          {/* Interactive Chart Mode Switch (44px touch targets for thumb reach) */}
+          <div className="flex items-center gap-1 p-1 bg-white/[0.04] border border-white/[0.08] rounded-xl self-start sm:self-auto shrink-0">
             <button
               onClick={() => setActiveChartTab('timeline')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-h-[36px] ${
+              className={`px-3.5 py-2 text-xs font-medium rounded-lg transition-all min-h-[44px] flex items-center active:scale-95 ${
                 activeChartTab === 'timeline'
-                  ? 'bg-white/10 text-white shadow-sm'
+                  ? 'bg-white/15 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -255,13 +255,13 @@ export const SentimentInsights: React.FC<Props> = ({
             </button>
             <button
               onClick={() => setActiveChartTab('frequency')}
-              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors min-h-[36px] ${
+              className={`px-3.5 py-2 text-xs font-medium rounded-lg transition-all min-h-[44px] flex items-center active:scale-95 ${
                 activeChartTab === 'frequency'
-                  ? 'bg-white/10 text-white shadow-sm'
+                  ? 'bg-white/15 text-white font-semibold shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Category Frequency
+              Frequency
             </button>
           </div>
         </div>
@@ -399,16 +399,16 @@ export const SentimentInsights: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Legend / Category Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-white/[0.08] text-xs">
+        {/* Legend / Category Pills (44px touch targets) */}
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 pt-3 border-t border-white/[0.08] text-xs">
           {(Object.keys(SENTIMENT_COLORS) as SentimentCategory[]).map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat === selectedCategory ? 'All' : cat)}
-              className={`flex items-center gap-2 px-2.5 py-1 rounded-lg transition-colors min-h-[36px] ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl transition-all min-h-[44px] active:scale-95 ${
                 selectedCategory === cat
-                  ? 'bg-white/[0.1] text-white font-medium ring-1 ring-white/20'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white/[0.12] text-white font-medium ring-1 ring-white/20 shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 bg-white/[0.02]'
               }`}
             >
               <span

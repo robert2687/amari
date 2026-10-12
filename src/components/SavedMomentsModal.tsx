@@ -1,6 +1,7 @@
 import React from 'react';
 import { SavedMoment } from '../types/companion';
 import { Bookmark, Trash2, Copy, Check, Heart, Sparkles } from 'lucide-react';
+import { triggerHaptic } from '../utils/haptics';
 
 interface Props {
   moments: SavedMoment[];
@@ -76,11 +77,15 @@ export const SavedMomentsModal: React.FC<Props> = ({
                   </span>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
-                    onClick={() => handleCopy(moment.id, moment.text)}
-                    className="p-1.5 text-slate-400 hover:text-slate-200 rounded-lg transition-colors"
+                    onClick={() => {
+                      handleCopy(moment.id, moment.text);
+                      triggerHaptic('light');
+                    }}
+                    className="p-2.5 text-slate-400 hover:text-slate-200 active:text-white rounded-xl hover:bg-white/[0.06] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
                     title="Copy quote"
+                    aria-label="Copy quote"
                   >
                     {copiedId === moment.id ? (
                       <Check className="w-4 h-4 text-emerald-400" />
@@ -89,9 +94,13 @@ export const SavedMomentsModal: React.FC<Props> = ({
                     )}
                   </button>
                   <button
-                    onClick={() => onDeleteMoment(moment.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg transition-colors"
+                    onClick={() => {
+                      onDeleteMoment(moment.id);
+                      triggerHaptic('cancel');
+                    }}
+                    className="p-2.5 text-slate-400 hover:text-rose-400 active:text-rose-300 rounded-xl hover:bg-white/[0.06] transition-all min-h-[44px] min-w-[44px] flex items-center justify-center active:scale-95"
                     title="Remove from saved"
+                    aria-label="Remove from saved"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

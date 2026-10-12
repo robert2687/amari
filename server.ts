@@ -161,6 +161,12 @@ function generateSmartContextualReflection(params: {
       question: `You've carried quite a lot of weight lately, ${userName}. What is one gentle thing you can let yourself put down tonight to give your mind breathing room?`,
       theme: 'Releasing the Weight',
       contextHint: `Grounded in how much energy you've been pouring out today`,
+      options: [
+        'Setting work and emails aside early',
+        'Taking a long hot shower or bath',
+        'Letting tomorrow worry about tomorrow',
+        'Just curling up without any expectations',
+      ],
     };
   }
 
@@ -176,6 +182,12 @@ function generateSmartContextualReflection(params: {
       question: `There was a lovely spark in what you shared with me today. What was one detail in that moment that made you smile deepest inside?`,
       theme: 'Savoring the Spark',
       contextHint: `Honoring the joy from our conversation`,
+      options: [
+        'A warm laugh shared with someone',
+        'Feeling proud of what I finished',
+        'A quiet moment of gratitude',
+        'A delightful, unexpected surprise',
+      ],
     };
   }
 
@@ -186,6 +198,12 @@ function generateSmartContextualReflection(params: {
         question: `Thinking about ${memory.text.toLowerCase()}, what is a small way that brings you comfort or grounding during the week?`,
         theme: 'Anchors of Comfort',
         contextHint: `Remembering what matters deeply to you`,
+        options: [
+          'Setting aside dedicated quiet time',
+          'Enjoying a comforting drink or meal',
+          'Reconnecting with someone I love',
+          'Stepping away into fresh air',
+        ],
       };
     }
   }
@@ -195,18 +213,36 @@ function generateSmartContextualReflection(params: {
       question: `As you begin your day, ${userName}, what is one feeling or intention you want to hold close before the hurry begins?`,
       theme: 'Morning Intention',
       contextHint: `A quiet morning breath with ${companionName}`,
+      options: [
+        'Moving with gentle patience today',
+        'Protecting my energy and peace',
+        'Staying focused on what truly matters',
+        'Being open to small moments of joy',
+      ],
     };
   } else if (timeOfDay === 'afternoon') {
     return {
       question: `In the middle of everything moving around you today, what has offered you a brief moment of quiet relief?`,
       theme: 'Midday Grounding',
       contextHint: 'Taking a gentle pause in the flow of your day',
+      options: [
+        'Stepping away from screens for a bit',
+        'Taking a few deep, slow breaths',
+        'A soothing warm or cool drink',
+        'A kind word or calm message',
+      ],
     };
   } else {
     return {
       question: `Looking back over today, what was one quiet moment that felt genuinely yours?`,
       theme: 'Evening Presence',
       contextHint: 'A gentle pause to check in with yourself',
+      options: [
+        'Sitting with a warm cup in peace',
+        'Stepping outside into the fresh air',
+        'Unwinding with music or a favorite show',
+        'Letting go of the day and resting',
+      ],
     };
   }
 }
@@ -479,6 +515,7 @@ Guidelines:
 3. Keep the question between 1 to 2 sentences.
 4. Give a theme title (2-4 words, e.g. "Honoring Your Space", "Finding the Quiet", "A Small Joy").
 5. Give a short context hint explaining why you're asking this today (e.g. "Thinking about how much you carried this week", "Following up on what you shared yesterday").
+6. Provide 4 thoughtful, varied answer options / quick-select response choices (under 10 words each) that the user can tap to immediately answer or reflect upon on their phone.
 
 Recent conversation context:
 ${recentConvo || '(No recent messages yet)'}
@@ -505,8 +542,13 @@ ${knownMemories || '(No memories recorded yet)'}`;
                 type: Type.STRING,
                 description: 'Brief warm reason connecting to recent chat context.',
               },
+              options: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: '4 warm, distinct answer options (under 10 words each) for the user to tap.',
+              },
             },
-            required: ['question', 'theme'],
+            required: ['question', 'theme', 'options'],
           },
         },
       });
@@ -520,6 +562,14 @@ ${knownMemories || '(No memories recorded yet)'}`;
         question: parsed.question,
         theme: parsed.theme || 'A Moment of Pause',
         contextHint: parsed.contextHint || `For your quiet moment with ${companionName} today`,
+        options: Array.isArray(parsed.options) && parsed.options.length > 0
+          ? parsed.options
+          : [
+              'Taking a quiet breath and resting',
+              'Stepping outside for fresh air',
+              'Enjoying a warm drink in peace',
+              'Letting go of today’s pressure',
+            ],
       });
     } catch (err: any) {
       console.warn('[Reflection Fallback] AI model temporarily in high demand. Providing tailored contextual reflection prompt.');
@@ -531,6 +581,57 @@ ${knownMemories || '(No memories recorded yet)'}`;
       });
 
       res.json(contextual);
+    }
+  });
+
+  // Contextual Smart Replies / Quick Answer Options for Chat
+  app.post('/api/replies/suggest', async (req: Request, res: Response) => {
+    try {
+      const {
+        companionName = 'Amari',
+        userName = 'Robert',
+        lastMessage = '',
+        userNeedsMode = 'natural',
+      } = req.body;
+
+      if (!lastMessage) {
+        res.json({ suggestions: [] });
+        return;
+      }
+
+      const prompt = `You are an assistant generating 3 to 4 natural, brief answer options or quick-replies that ${userName} might want to tap to reply to their companion ${companionName}.
+Companion's latest message:
+"${lastMessage}"
+Current focus mode: ${userNeedsMode}.
+
+Rules:
+- Generate 3 to 4 varied, distinct reply options (under 7 words each).
+- Make them sound like a natural human reply (warm, playful, honest, or reflective).
+- If the companion asked a direct choice or question (e.g. comfort vs advice vs distraction, or how was your day), provide the direct answer options!
+- Return valid JSON matching schema.`;
+
+      const response = await generateContentWithFallback({
+        contents: prompt,
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              suggestions: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+            },
+            required: ['suggestions'],
+          },
+        },
+      });
+
+      const parsed = JSON.parse(response.text || '{"suggestions": []}');
+      res.json({ suggestions: parsed.suggestions || [] });
+    } catch (err) {
+      console.warn('Smart replies suggestion fallback used:', err);
+      res.json({ suggestions: [] });
     }
   });
 

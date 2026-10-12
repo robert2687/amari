@@ -30,6 +30,7 @@ import {
 } from './utils/storage';
 import { speakText } from './utils/speechSynthesis';
 import { detectCrisisIndicators } from './utils/safety';
+import { triggerHaptic } from './utils/haptics';
 import { CompanionHeader } from './components/CompanionHeader';
 import { ChatView } from './components/ChatView';
 import { MemoryVault } from './components/MemoryVault';
@@ -39,6 +40,7 @@ import { SentimentInsights } from './components/SentimentInsights';
 import { CrisisBanner } from './components/CrisisBanner';
 import { SettingsModal } from './components/SettingsModal';
 import { ReflectionsJournalModal } from './components/ReflectionsJournalModal';
+import { CompanionProfileDrawer } from './components/CompanionProfileDrawer';
 import { MessageSquare, BookOpen, Bookmark, HeartHandshake, TrendingUp, Sparkles } from 'lucide-react';
 import {
   TimeOfDayTheme,
@@ -48,6 +50,14 @@ import {
   loadThemePreference,
   saveThemePreference,
 } from './utils/theme';
+
+const TABS: Array<'chat' | 'memories' | 'insights' | 'saved' | 'care'> = [
+  'chat',
+  'memories',
+  'insights',
+  'saved',
+  'care',
+];
 
 export default function App() {
   const [companion, setCompanion] = useState<CompanionProfile>(loadCompanionProfile);
@@ -61,9 +71,65 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isJournalOpen, setIsJournalOpen] = useState<boolean>(false);
+  const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState<boolean>(false);
   const [isReflectionLoading, setIsReflectionLoading] = useState<boolean>(false);
   const [showCrisisBanner, setShowCrisisBanner] = useState<boolean>(false);
   const [memoryNotification, setMemoryNotification] = useState<string | null>(null);
+
+  // Mobile virtual keyboard visual viewport height tracker
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.visualViewport) return;
+
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        setViewportHeight(window.visualViewport.height);
+      }
+    };
+
+    window.visualViewport.addEventListener('resize', handleViewportChange);
+    window.visualViewport.addEventListener('scroll', handleViewportChange);
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleViewportChange);
+      window.visualViewport?.removeEventListener('scroll', handleViewportChange);
+    };
+  }, []);
+
+  // Mobile horizontal swipe gestures across tabs
+  const touchStartXRef = React.useRef<number | null>(null);
+  const touchStartYRef = React.useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const target = e.target as HTMLElement | null;
+    if (target?.closest('input, textarea, select, button, a, .touch-pan-x, .overflow-x-auto, [data-no-swipe]')) {
+      touchStartXRef.current = null;
+      touchStartYRef.current = null;
+      return;
+    }
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null || touchStartYRef.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartXRef.current;
+    const deltaY = e.changedTouches[0].clientY - touchStartYRef.current;
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+
+    // Only switch tabs on intentional horizontal edge swipes (>75px) without vertical scroll (<40px)
+    if (Math.abs(deltaX) > 75 && Math.abs(deltaY) < 40) {
+      const currentIndex = TABS.indexOf(activeTab);
+      if (deltaX < 0 && currentIndex < TABS.length - 1) {
+        triggerHaptic('select');
+        setActiveTab(TABS[currentIndex + 1]);
+      } else if (deltaX > 0 && currentIndex > 0) {
+        triggerHaptic('select');
+        setActiveTab(TABS[currentIndex - 1]);
+      }
+    }
+  };
 
   // Dynamic Time-of-Day Theme System
   const [themePref, setThemePref] = useState<TimeOfDayTheme>(loadThemePreference);
@@ -142,6 +208,14 @@ export default function App() {
               question: data.question,
               theme: data.theme || 'Daily Check-in',
               contextHint: data.contextHint,
+              options: Array.isArray(data.options) && data.options.length > 0
+                ? data.options
+                : [
+                    'Sitting with a warm cup in peace',
+                    'Stepping outside into fresh air',
+                    'Unwinding with music or a favorite show',
+                    'Letting go of the day and resting',
+                  ],
             };
             setReflections((prev) => [newRef, ...prev.filter((r) => r.dateString !== todayStr)]);
           }
@@ -154,6 +228,12 @@ export default function App() {
               'Looking back on your day, what was one quiet moment that felt genuinely yours?',
             theme: 'Evening Presence',
             contextHint: 'For your quiet moment with Amari today',
+            options: [
+              'Sitting with a warm cup in peace',
+              'Stepping outside into fresh air',
+              'Unwinding with music or a favorite show',
+              'Letting go of today’s pressure and resting',
+            ],
           };
           setReflections((prev) => [fallbackRef, ...prev.filter((r) => r.dateString !== todayStr)]);
         } finally {
@@ -418,18 +498,29 @@ export default function App() {
   const handleAnswerReflection = async (
     reflectionId: string,
     answer: string,
-    sendToChat: boolean
+    sendToChat: boolean,
+    selectedOption?: string
   ) => {
     setReflections((prev) =>
       prev.map((r) =>
         r.id === reflectionId
-          ? { ...r, userAnswer: answer, answeredAt: Date.now(), isSkipped: false }
+          ? {
+              ...r,
+              userAnswer: answer,
+              selectedOption: selectedOption || r.selectedOption,
+              answeredAt: Date.now(),
+              isSkipped: false,
+            }
           : r
       )
     );
 
     if (sendToChat) {
-      await handleSendMessage(`Here is my daily reflection for today: "${answer}"`);
+      const textToSend =
+        selectedOption && answer !== selectedOption
+          ? `Here is my daily reflection for today: "${selectedOption}" — ${answer}`
+          : `Here is my daily reflection for today: "${answer}"`;
+      await handleSendMessage(textToSend);
     } else {
       setMemoryNotification('Saved to your private reflections journal.');
       setTimeout(() => setMemoryNotification(null), 4000);
@@ -453,10 +544,11 @@ export default function App() {
 
   return (
     <div
-      className="min-h-screen text-slate-100 flex flex-col selection:bg-rose-900 selection:text-white relative overflow-x-hidden"
+      className="h-[100dvh] max-h-[100dvh] w-full text-slate-100 flex flex-col selection:bg-rose-900 selection:text-white relative overflow-hidden"
       style={{
         background: activeThemeConfig.bgStyle,
         transition: 'background 1.5s cubic-bezier(0.16, 1, 0.3, 1)',
+        ...(viewportHeight ? { height: `${viewportHeight}px`, maxHeight: `${viewportHeight}px` } : {}),
       }}
     >
       {/* Ambient Atmospheric Glow Elements */}
@@ -480,18 +572,26 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenProfileDrawer={() => setIsProfileDrawerOpen(true)}
+        themePref={themePref}
+        resolvedTheme={resolvedTheme}
+        onThemeChange={setThemePref}
       />
 
       {/* Subtle Memory Toast notification */}
       {memoryNotification && (
-        <div className="fixed top-20 right-4 z-40 bg-[#161b22] border border-rose-500/30 text-rose-200 px-4 py-2.5 rounded-xl shadow-xl text-xs flex items-center gap-2 animate-fadeIn max-w-sm">
+        <div className="fixed top-16 right-3 sm:right-4 z-40 bg-[#161b22] border border-rose-500/30 text-rose-200 px-3.5 py-2 rounded-xl shadow-xl text-xs flex items-center gap-2 animate-fadeIn max-w-[85vw] sm:max-w-sm">
           <BookOpen className="w-4 h-4 text-rose-400 shrink-0" />
           <span className="truncate">{memoryNotification}</span>
         </div>
       )}
 
-      {/* Main Tab Content */}
-      <main className="flex-1 pb-16 md:pb-4 relative z-10">
+      {/* Main Tab Content with smooth horizontal swipe support */}
+      <main
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="flex-1 min-h-0 relative z-10 flex flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0"
+      >
         {activeTab === 'chat' && (
           <ChatView
             companion={companion}
@@ -518,46 +618,54 @@ export default function App() {
         )}
 
         {activeTab === 'memories' && (
-          <MemoryVault
-            memories={memories}
-            companionName={companion.name}
-            userName={user.name}
-            onAddMemory={handleAddMemory}
-            onDeleteMemory={handleDeleteMemory}
-            onTogglePin={handleTogglePinMemory}
-          />
+          <div className="h-full overflow-y-auto overscroll-contain px-2 sm:px-6 py-4">
+            <MemoryVault
+              memories={memories}
+              companionName={companion.name}
+              userName={user.name}
+              onAddMemory={handleAddMemory}
+              onDeleteMemory={handleDeleteMemory}
+              onTogglePin={handleTogglePinMemory}
+            />
+          </div>
         )}
 
         {activeTab === 'insights' && (
-          <SentimentInsights
-            messages={messages}
-            reflections={reflections}
-            companionName={companion.name}
-            userName={user.name}
-            onNavigateToChat={() => setActiveTab('chat')}
-            onOpenJournal={() => setIsJournalOpen(true)}
-          />
+          <div className="h-full overflow-y-auto overscroll-contain px-2 sm:px-6 py-4">
+            <SentimentInsights
+              messages={messages}
+              reflections={reflections}
+              companionName={companion.name}
+              userName={user.name}
+              onNavigateToChat={() => setActiveTab('chat')}
+              onOpenJournal={() => setIsJournalOpen(true)}
+            />
+          </div>
         )}
 
         {activeTab === 'saved' && (
-          <SavedMomentsModal
-            moments={savedMoments}
-            companionName={companion.name}
-            userName={user.name}
-            onDeleteMoment={handleDeleteSavedMoment}
-            onNavigateToChat={() => setActiveTab('chat')}
-          />
+          <div className="h-full overflow-y-auto overscroll-contain px-2 sm:px-6 py-4">
+            <SavedMomentsModal
+              moments={savedMoments}
+              companionName={companion.name}
+              userName={user.name}
+              onDeleteMoment={handleDeleteSavedMoment}
+              onNavigateToChat={() => setActiveTab('chat')}
+            />
+          </div>
         )}
 
         {activeTab === 'care' && (
-          <CareGuideModal
-            companionName={companion.name}
-            userName={user.name}
-          />
+          <div className="h-full overflow-y-auto overscroll-contain px-2 sm:px-6 py-4">
+            <CareGuideModal
+              companionName={companion.name}
+              userName={user.name}
+            />
+          </div>
         )}
       </main>
 
-      {/* Settings Modal */}
+      {/* Settings Modal (Mobile bottom sheet / desktop modal) */}
       <SettingsModal
         companion={companion}
         user={user}
@@ -569,7 +677,7 @@ export default function App() {
         }}
       />
 
-      {/* Daily Reflections Journal Modal */}
+      {/* Daily Reflections Journal Modal (Mobile bottom sheet / desktop modal) */}
       <ReflectionsJournalModal
         isOpen={isJournalOpen}
         onClose={() => setIsJournalOpen(false)}
@@ -579,56 +687,112 @@ export default function App() {
         onDeleteReflection={handleDeleteReflection}
       />
 
-      {/* Mobile Bottom Tab Navigation (Pattern 1 from mobile touch guidelines) */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161b22]/95 backdrop-blur-md border-t border-white/[0.08] grid grid-cols-5 items-center h-16">
+      {/* Companion Profile Bottom Sheet Drawer (Mobile one-handed touch sheet) */}
+      <CompanionProfileDrawer
+        isOpen={isProfileDrawerOpen}
+        onClose={() => setIsProfileDrawerOpen(false)}
+        companion={companion}
+        user={user}
+        memoriesCount={memories.length}
+        themePref={themePref}
+        resolvedTheme={resolvedTheme}
+        onThemeChange={setThemePref}
+        onOpenSettings={() => {
+          setIsProfileDrawerOpen(false);
+          setIsSettingsOpen(true);
+        }}
+        onNavigateToMemories={() => {
+          setIsProfileDrawerOpen(false);
+          setActiveTab('memories');
+        }}
+        onClearChat={handleClearChat}
+      />
+
+      {/* Mobile Bottom Tab Navigation: 5 Primary Tabs, 48px+ touch targets, thumb-accessible */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161b22]/95 backdrop-blur-md border-t border-white/[0.08] grid grid-cols-5 items-center h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-safe px-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
         <button
-          onClick={() => setActiveTab('chat')}
-          className={`flex flex-col items-center justify-center h-full transition-colors ${
-            activeTab === 'chat' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+          onClick={() => {
+            setActiveTab('chat');
+            triggerHaptic('select');
+          }}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] min-w-[48px] transition-all rounded-xl py-1 active:scale-95 ${
+            activeTab === 'chat'
+              ? 'text-rose-400 font-semibold bg-white/[0.06] shadow-inner'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
+          aria-label="Chat with companion"
         >
-          <MessageSquare className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight mt-1">Chat</span>
+          <div className="relative">
+            <MessageSquare className="w-5 h-5" />
+            {todayReflection && !todayReflection.userAnswer && !todayReflection.isSkipped && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+            )}
+          </div>
+          <span className="text-[11px] tracking-tight mt-1 font-medium">Chat</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('memories')}
-          className={`flex flex-col items-center justify-center h-full transition-colors ${
-            activeTab === 'memories' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+          onClick={() => {
+            setActiveTab('memories');
+            triggerHaptic('select');
+          }}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] min-w-[48px] transition-all rounded-xl py-1 active:scale-95 ${
+            activeTab === 'memories'
+              ? 'text-rose-400 font-semibold bg-white/[0.06] shadow-inner'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
+          aria-label="Memory notes"
         >
-          <BookOpen className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight mt-1">Notes</span>
+          <BookOpen className="w-5 h-5" />
+          <span className="text-[11px] tracking-tight mt-1 font-medium">Notes</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('insights')}
-          className={`flex flex-col items-center justify-center h-full transition-colors ${
-            activeTab === 'insights' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+          onClick={() => {
+            setActiveTab('insights');
+            triggerHaptic('select');
+          }}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] min-w-[48px] transition-all rounded-xl py-1 active:scale-95 ${
+            activeTab === 'insights'
+              ? 'text-rose-400 font-semibold bg-white/[0.06] shadow-inner'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
+          aria-label="Emotional journey insights"
         >
-          <TrendingUp className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight mt-1">Journey</span>
+          <TrendingUp className="w-5 h-5" />
+          <span className="text-[11px] tracking-tight mt-1 font-medium">Journey</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('saved')}
-          className={`flex flex-col items-center justify-center h-full transition-colors ${
-            activeTab === 'saved' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+          onClick={() => {
+            setActiveTab('saved');
+            triggerHaptic('select');
+          }}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] min-w-[48px] transition-all rounded-xl py-1 active:scale-95 ${
+            activeTab === 'saved'
+              ? 'text-rose-400 font-semibold bg-white/[0.06] shadow-inner'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
+          aria-label="Saved moments and quotes"
         >
-          <Bookmark className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight mt-1">Saved</span>
+          <Bookmark className="w-5 h-5" />
+          <span className="text-[11px] tracking-tight mt-1 font-medium">Saved</span>
         </button>
 
         <button
-          onClick={() => setActiveTab('care')}
-          className={`flex flex-col items-center justify-center h-full transition-colors ${
-            activeTab === 'care' ? 'text-rose-400 font-semibold' : 'text-slate-400'
+          onClick={() => {
+            setActiveTab('care');
+            triggerHaptic('select');
+          }}
+          className={`flex flex-col items-center justify-center h-full min-h-[48px] min-w-[48px] transition-all rounded-xl py-1 active:scale-95 ${
+            activeTab === 'care'
+              ? 'text-rose-400 font-semibold bg-white/[0.06] shadow-inner'
+              : 'text-slate-400 hover:text-slate-200'
           }`}
+          aria-label="Care and ethics guide"
         >
-          <HeartHandshake className="w-4 h-4" />
-          <span className="text-[10px] tracking-tight mt-1">Care</span>
+          <HeartHandshake className="w-5 h-5" />
+          <span className="text-[11px] tracking-tight mt-1 font-medium">Care</span>
         </button>
       </nav>
     </div>

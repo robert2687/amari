@@ -80,6 +80,8 @@ export interface DailyReflection {
   question: string;
   theme: string;
   contextHint?: string;
+  options?: string[]; // Multiple-choice answer options for quick tap
+  selectedOption?: string;
   userAnswer?: string;
   answeredAt?: number;
   isSkipped?: boolean;
