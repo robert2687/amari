@@ -544,7 +544,7 @@ export default function App() {
 
   return (
     <div
-      className="h-[100dvh] max-h-[100dvh] w-full text-slate-100 flex flex-col selection:bg-rose-900 selection:text-white relative overflow-hidden"
+      className="h-[100dvh] max-h-[100dvh] w-full text-slate-100 flex flex-col selection:bg-indigo-500/30 selection:text-white relative overflow-hidden"
       style={{
         background: activeThemeConfig.bgStyle,
         transition: 'background 1.5s cubic-bezier(0.16, 1, 0.3, 1)',
@@ -590,7 +590,7 @@ export default function App() {
       <main
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className="flex-1 min-h-0 relative z-10 flex flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0"
+        className="flex-1 min-h-0 relative z-10 flex flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0 bg-black/10"
       >
         {activeTab === 'chat' && (
           <ChatView
@@ -709,7 +709,7 @@ export default function App() {
       />
 
       {/* Mobile Bottom Tab Navigation: 5 Primary Tabs, 48px+ touch targets, thumb-accessible */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161b22]/95 backdrop-blur-md border-t border-white/[0.08] grid grid-cols-5 items-center h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-safe px-1.5 shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0b0f18]/90 backdrop-blur-xl border-t border-white/[0.10] grid grid-cols-5 items-center h-[calc(4rem+env(safe-area-inset-bottom,0px))] pb-safe px-1.5 shadow-[0_-12px_32px_rgba(0,0,0,0.35)]">
         <button
           onClick={() => {
             setActiveTab('chat');
