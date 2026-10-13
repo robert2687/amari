@@ -30,7 +30,7 @@ export const CompanionHeader: React.FC<Props> = ({
   const avatarSrc = AVATAR_MAP[profile.avatar] || AVATAR_MAP.gentle;
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-[#0d1117]/90 backdrop-blur-md border-b border-white/[0.08] shrink-0 pt-safe">
+    <header className="sticky top-0 z-30 w-full bg-[#080b12]/80 backdrop-blur-xl border-b border-white/[0.08] shrink-0 pt-safe">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-4">
         {/* Brand & Companion Identity */}
         <button
@@ -49,7 +49,7 @@ export const CompanionHeader: React.FC<Props> = ({
               src={avatarSrc}
               alt={profile.name}
               referrerPolicy="no-referrer"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-rose-400/40 shadow-sm"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-2xl object-cover border border-indigo-300/30 shadow-[0_0_24px_rgba(99,102,241,0.22)]"
             />
             <span
               className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#0d1117]"
@@ -59,7 +59,7 @@ export const CompanionHeader: React.FC<Props> = ({
 
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5 leading-tight">
-              <span className="font-serif-companion italic text-rose-300 text-lg sm:text-xl font-normal">
+              <span className="font-serif-companion italic text-indigo-100 text-lg sm:text-xl font-normal tracking-tight">
                 {profile.name}
               </span>
               <span className="text-[10px] sm:text-xs text-emerald-400/90 font-medium tracking-tight">
@@ -81,7 +81,7 @@ export const CompanionHeader: React.FC<Props> = ({
             }}
             className={`whitespace-nowrap shrink-0 py-1 transition-colors min-h-[44px] flex items-center ${
               activeTab === 'chat'
-                ? 'text-white border-b-2 border-rose-400 font-semibold'
+                ? 'text-white border-b-2 border-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -94,7 +94,7 @@ export const CompanionHeader: React.FC<Props> = ({
             }}
             className={`whitespace-nowrap shrink-0 py-1 transition-colors min-h-[44px] flex items-center ${
               activeTab === 'memories'
-                ? 'text-white border-b-2 border-rose-400 font-semibold'
+                ? 'text-white border-b-2 border-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -107,7 +107,7 @@ export const CompanionHeader: React.FC<Props> = ({
             }}
             className={`whitespace-nowrap shrink-0 py-1 transition-colors min-h-[44px] flex items-center ${
               activeTab === 'insights'
-                ? 'text-white border-b-2 border-rose-400 font-semibold'
+                ? 'text-white border-b-2 border-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -120,7 +120,7 @@ export const CompanionHeader: React.FC<Props> = ({
             }}
             className={`whitespace-nowrap shrink-0 py-1 transition-colors min-h-[44px] flex items-center ${
               activeTab === 'saved'
-                ? 'text-white border-b-2 border-rose-400 font-semibold'
+                ? 'text-white border-b-2 border-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
@@ -133,11 +133,11 @@ export const CompanionHeader: React.FC<Props> = ({
             }}
             className={`whitespace-nowrap shrink-0 py-1 transition-colors flex items-center gap-1.5 min-h-[44px] ${
               activeTab === 'care'
-                ? 'text-white border-b-2 border-rose-400 font-semibold'
+                ? 'text-white border-b-2 border-indigo-400 font-semibold'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            <HeartHandshake className="w-3.5 h-3.5 text-rose-400" />
+            <HeartHandshake className="w-3.5 h-3.5 text-indigo-300" />
             <span>Care</span>
           </button>
         </nav>
@@ -155,7 +155,7 @@ export const CompanionHeader: React.FC<Props> = ({
               onOpenSettings();
               triggerHaptic('light');
             }}
-            className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-200 bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.08] rounded-xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center active:scale-95"
+            className="px-2.5 sm:px-3 py-1.5 text-xs font-medium text-slate-200 bg-white/[0.05] hover:bg-indigo-500/15 active:bg-indigo-500/20 border border-white/[0.10] rounded-2xl transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 min-h-[44px] min-w-[44px] justify-center active:scale-95 shadow-sm"
             title="Companion and relationship settings"
             aria-label="Settings"
           >

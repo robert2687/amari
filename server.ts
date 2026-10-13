@@ -1,4 +1,5 @@
 import express, { type Request, type Response } from 'express';
+import { createServer as createHttpServer } from 'node:http';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -249,6 +250,7 @@ function generateSmartContextualReflection(params: {
 
 async function startServer() {
   const app = express();
+  const httpServer = createHttpServer(app);
   app.use(express.json({ limit: '25mb' }));
 
   // SSE Chat Stream
@@ -676,7 +678,10 @@ Rules:
   // Frontend mounting
   if (!isProd) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: { server: httpServer },
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);
@@ -687,7 +692,7 @@ Rules:
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  httpServer.listen(PORT, '0.0.0.0', () => {
     console.log(`Amari companion server running on http://0.0.0.0:${PORT}`);
   });
 }
